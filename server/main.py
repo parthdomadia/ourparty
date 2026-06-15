@@ -32,9 +32,13 @@ async def room_endpoint(websocket: WebSocket, room_id: str):
         while True:
             data = await websocket.receive_json()
             await _handle_message(room, websocket, data)
-    except WebSocketDisconnect:
-        room["users"].remove(websocket)
-        del room["timestamps"][id(websocket)]
+    except (WebSocketDisconnect, Exception):
+        pass
+    finally:
+        if websocket in room["users"]:
+            room["users"].remove(websocket)
+        if id(websocket) in room["timestamps"]:
+            del room["timestamps"][id(websocket)]
         if not room["users"]:
             del rooms[room_id]
 

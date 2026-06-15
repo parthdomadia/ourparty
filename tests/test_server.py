@@ -1,8 +1,16 @@
 import threading
+import pytest
 from starlette.testclient import TestClient
-from server.main import app
+from server.main import app, rooms as rooms_state
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def clear_rooms():
+    rooms_state.clear()
+    yield
+    rooms_state.clear()
 
 
 def test_health_check():
@@ -20,12 +28,12 @@ def test_two_users_join_same_room():
 
 def test_room_rejects_third_user():
     """Third connection to a full room is immediately closed by server."""
+    disconnected = False
     with client.websocket_connect("/room/FULL01") as ws1:
         with client.websocket_connect("/room/FULL01") as ws2:
             with client.websocket_connect("/room/FULL01") as ws3:
-                # server accepts then closes — receive should raise
                 try:
                     ws3.receive_json()
-                    assert False, "Expected disconnect"
                 except Exception:
-                    pass  # expected — server closed the connection
+                    disconnected = True
+    assert disconnected, "Expected server to reject the third user"
