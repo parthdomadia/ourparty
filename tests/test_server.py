@@ -121,3 +121,60 @@ def test_sender_does_not_receive_own_event():
         "Partner did not receive the event — relay is broken"
     assert received_by_sender == [], \
         "Sender received its own event — echo suppression is broken"
+
+
+def test_drift_correction_sent_to_lagging_user():
+    """When tick timestamps differ by >2s, the lagging user receives a seek."""
+    received_by_ws2 = []
+
+    def listen(ws):
+        received_by_ws2.append(ws.receive_json())
+
+    with client.websocket_connect("/room/DRIFT1") as ws1:
+        with client.websocket_connect("/room/DRIFT1") as ws2:
+            t = threading.Thread(target=listen, args=(ws2,))
+            t.start()
+            ws1.send_json({"type": "tick", "t": 150.0})
+            ws2.send_json({"type": "tick", "t": 147.0})  # 3s behind
+            t.join(timeout=3)
+
+    assert received_by_ws2 == [{"type": "seek", "t": 150.0}]
+
+
+def test_no_drift_correction_within_threshold():
+    """When tick timestamps differ by <2s, no seek is sent."""
+    received = []
+
+    def listen(ws):
+        try:
+            received.append(ws.receive_json())
+        except Exception:
+            pass
+
+    with client.websocket_connect("/room/NODRIFT") as ws1:
+        with client.websocket_connect("/room/NODRIFT") as ws2:
+            t = threading.Thread(target=listen, args=(ws2,))
+            t.start()
+            ws1.send_json({"type": "tick", "t": 150.0})
+            ws2.send_json({"type": "tick", "t": 149.0})  # 1s — within threshold
+            t.join(timeout=2)
+
+    assert received == []
+
+
+def test_drift_correction_targets_max_timestamp():
+    """Seek target is the ahead user's timestamp, not an average."""
+    received_by_ws1 = []
+
+    def listen(ws):
+        received_by_ws1.append(ws.receive_json())
+
+    with client.websocket_connect("/room/DRIFT2") as ws1:
+        with client.websocket_connect("/room/DRIFT2") as ws2:
+            t = threading.Thread(target=listen, args=(ws1,))
+            t.start()
+            ws1.send_json({"type": "tick", "t": 100.0})  # ws1 is behind
+            ws2.send_json({"type": "tick", "t": 105.0})  # ws2 is ahead
+            t.join(timeout=3)
+
+    assert received_by_ws1 == [{"type": "seek", "t": 105.0}]

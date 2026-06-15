@@ -61,4 +61,11 @@ async def _handle_message(room: dict, sender: WebSocket, data: dict):
 
     elif msg_type == "tick":
         room["timestamps"][id(sender)] = t
-        # drift correction added in Task 4
+        partner = _partner(room, sender)
+        if partner:
+            partner_t = room["timestamps"].get(id(partner), t)
+            diff = abs(t - partner_t)
+            if diff > 2.0:
+                ahead_t = max(t, partner_t)
+                lagging = sender if t < partner_t else partner
+                await lagging.send_json({"type": "seek", "t": ahead_t})
