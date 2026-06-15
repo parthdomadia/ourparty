@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      width: 240px;
+      padding: 16px;
+      background: #0f0f1a;
+      color: #f0f0f0;
+      margin: 0;
+    }
+    h2 { margin: 0 0 12px; font-size: 1rem; color: #a78bfa; }
+    button {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+    }
+    #btn-create { background: #6d28d9; color: white; }
+    #btn-join   { background: #1e1e2e; color: #a78bfa; border: 1px solid #6d28d9; }
+    #btn-join-confirm { background: #6d28d9; color: white; }
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #6d28d9;
+      background: #1e1e2e;
+      color: white;
+      font-size: 1.1rem;
+      margin-bottom: 8px;
+      text-align: center;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+    #status { font-size: 0.8rem; color: #a78bfa; text-align: center; min-height: 20px; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <h2>OurParty</h2>
+  <div id="view-main">
+    <button id="btn-create">Create Room</button>
+    <button id="btn-join">Join Room</button>
+  </div>
+  <div id="view-join" class="hidden">
+    <input id="input-code" placeholder="XXXXXX" maxlength="6">
+    <button id="btn-join-confirm">Join</button>
+  </div>
+  <div id="status"></div>
+  <script src="popup.js"></script>
+</body>
+</html>
