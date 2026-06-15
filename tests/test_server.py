@@ -92,19 +92,32 @@ def test_seek_relayed_to_partner():
 
 def test_sender_does_not_receive_own_event():
     """Events are only relayed to the partner, never echoed back to sender."""
-    received = []
+    received_by_sender = []
+    received_by_partner = []
 
-    def listen(ws):
+    def listen_sender(ws):
         try:
-            received.append(ws.receive_json())
+            received_by_sender.append(ws.receive_json())
         except Exception:
-            pass  # connection closed at end of with block
+            pass
+
+    def listen_partner(ws):
+        try:
+            received_by_partner.append(ws.receive_json())
+        except Exception:
+            pass
 
     with client.websocket_connect("/room/ECHO01") as ws1:
         with client.websocket_connect("/room/ECHO01") as ws2:
-            t = threading.Thread(target=listen, args=(ws1,))
-            t.start()
+            t_partner = threading.Thread(target=listen_partner, args=(ws2,))
+            t_sender  = threading.Thread(target=listen_sender,  args=(ws1,))
+            t_partner.start()
+            t_sender.start()
             ws1.send_json({"type": "play", "t": 50.0})
-            t.join(timeout=2)
+            t_partner.join(timeout=3)
+            t_sender.join(timeout=0.5)
 
-    assert received == []
+    assert received_by_partner == [{"type": "play", "t": 50.0}], \
+        "Partner did not receive the event — relay is broken"
+    assert received_by_sender == [], \
+        "Sender received its own event — echo suppression is broken"

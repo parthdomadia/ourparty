@@ -49,7 +49,10 @@ def _partner(room: dict, sender: WebSocket):
 
 async def _handle_message(room: dict, sender: WebSocket, data: dict):
     msg_type = data.get("type")
-    t = float(data.get("t", 0.0))
+    try:
+        t = float(data.get("t", 0.0))
+    except (TypeError, ValueError):
+        return
     partner = _partner(room, sender)
 
     if msg_type in ("play", "pause", "seek"):
