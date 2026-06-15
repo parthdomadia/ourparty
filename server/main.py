@@ -26,7 +26,6 @@ async def room_endpoint(websocket: WebSocket, room_id: str):
         return
 
     room["users"].append(websocket)
-    room["timestamps"][id(websocket)] = 0.0
 
     try:
         while True:
