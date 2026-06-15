@@ -3,7 +3,7 @@
   "name": "OurParty",
   "version": "1.0.0",
   "description": "Watch together, stay in sync.",
-  "permissions": ["tabs", "storage", "scripting"],
+  "permissions": ["tabs", "storage"],
   "host_permissions": [
     "*://*.netflix.com/*",
     "*://*.primevideo.com/*",
