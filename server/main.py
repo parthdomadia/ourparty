@@ -48,4 +48,14 @@ def _partner(room: dict, sender: WebSocket):
 
 
 async def _handle_message(room: dict, sender: WebSocket, data: dict):
-    pass  # filled in Tasks 3 and 4
+    msg_type = data.get("type")
+    t = float(data.get("t", 0.0))
+    partner = _partner(room, sender)
+
+    if msg_type in ("play", "pause", "seek"):
+        if partner:
+            await partner.send_json({"type": msg_type, "t": t})
+
+    elif msg_type == "tick":
+        room["timestamps"][id(sender)] = t
+        # drift correction added in Task 4

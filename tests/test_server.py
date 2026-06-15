@@ -37,3 +37,74 @@ def test_room_rejects_third_user():
                 except Exception:
                     disconnected = True
     assert disconnected, "Expected server to reject the third user"
+
+
+def test_play_relayed_to_partner():
+    """play event from ws1 is received by ws2."""
+    received = []
+
+    def listen(ws):
+        received.append(ws.receive_json())
+
+    with client.websocket_connect("/room/RELAY1") as ws1:
+        with client.websocket_connect("/room/RELAY1") as ws2:
+            t = threading.Thread(target=listen, args=(ws2,))
+            t.start()
+            ws1.send_json({"type": "play", "t": 100.0})
+            t.join(timeout=3)
+
+    assert received == [{"type": "play", "t": 100.0}]
+
+
+def test_pause_relayed_to_partner():
+    """pause event from ws2 is received by ws1."""
+    received = []
+
+    def listen(ws):
+        received.append(ws.receive_json())
+
+    with client.websocket_connect("/room/RELAY2") as ws1:
+        with client.websocket_connect("/room/RELAY2") as ws2:
+            t = threading.Thread(target=listen, args=(ws1,))
+            t.start()
+            ws2.send_json({"type": "pause", "t": 200.5})
+            t.join(timeout=3)
+
+    assert received == [{"type": "pause", "t": 200.5}]
+
+
+def test_seek_relayed_to_partner():
+    """seek event from ws1 is received by ws2."""
+    received = []
+
+    def listen(ws):
+        received.append(ws.receive_json())
+
+    with client.websocket_connect("/room/RELAY3") as ws1:
+        with client.websocket_connect("/room/RELAY3") as ws2:
+            t = threading.Thread(target=listen, args=(ws2,))
+            t.start()
+            ws1.send_json({"type": "seek", "t": 310.0})
+            t.join(timeout=3)
+
+    assert received == [{"type": "seek", "t": 310.0}]
+
+
+def test_sender_does_not_receive_own_event():
+    """Events are only relayed to the partner, never echoed back to sender."""
+    received = []
+
+    def listen(ws):
+        try:
+            received.append(ws.receive_json())
+        except Exception:
+            pass  # connection closed at end of with block
+
+    with client.websocket_connect("/room/ECHO01") as ws1:
+        with client.websocket_connect("/room/ECHO01") as ws2:
+            t = threading.Thread(target=listen, args=(ws1,))
+            t.start()
+            ws1.send_json({"type": "play", "t": 50.0})
+            t.join(timeout=2)
+
+    assert received == []
