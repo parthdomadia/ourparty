@@ -1,5 +1,5 @@
 // Replaced with your Render URL in Task 9
-const SERVER_URL = "wss://YOUR-RENDER-URL.onrender.com";
+const SERVER_URL = "wss://ourparty-server.onrender.com";
 
 let socket = null;
 let activeTabId = null;

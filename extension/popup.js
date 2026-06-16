@@ -1,5 +1,5 @@
 // Replaced with your Render URL in Task 9
-const SERVER_HTTP = "https://YOUR-RENDER-URL.onrender.com";
+const SERVER_HTTP = "https://ourparty-server.onrender.com";
 
 function randomCode() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
