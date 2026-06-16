@@ -17,7 +17,6 @@ function showView(viewId) {
 }
 
 function wakeServer() {
-  // Fire-and-forget — just gets Render's free tier to spin up
   fetch(SERVER_HTTP + "/", { method: "GET" }).catch(() => {});
 }
 
@@ -25,15 +24,38 @@ async function connectRoom(roomId) {
   setStatus("Connecting...");
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   chrome.runtime.sendMessage({ type: "connect", roomId, tabId: tab.id });
-  setStatus(`Room: ${roomId}`);
+  setStatus("Waiting for partner...");
 }
+
+// Update status when partner connection state changes
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "session" || !changes.partnerStatus) return;
+  const status = changes.partnerStatus.newValue;
+  if (status === "connected") {
+    setStatus("Partner connected ✓");
+  } else if (status === "waiting") {
+    setStatus("Waiting for partner...");
+  }
+});
+
+// On popup open — restore state if already in a room
+chrome.storage.session.get(["partnerStatus", "roomId"], (result) => {
+  if (result.roomId) {
+    showView("view-join");
+    document.getElementById("input-code").value = result.roomId;
+    if (result.partnerStatus === "connected") {
+      setStatus("Partner connected ✓");
+    } else {
+      setStatus("Waiting for partner...");
+    }
+  }
+});
 
 document.getElementById("btn-create").addEventListener("click", async () => {
   wakeServer();
   const code = randomCode();
   document.getElementById("input-code").value = code;
   showView("view-join");
-  setStatus(`Share this code: ${code}`);
   await connectRoom(code);
 });
 

@@ -11,6 +11,8 @@ function connectToRoom(roomId, tabId) {
     socket.close();
   }
 
+  chrome.storage.session.set({ partnerStatus: "waiting", roomId });
+
   socket = new WebSocket(`${SERVER_URL}/room/${roomId}`);
 
   socket.onopen = () => {
@@ -19,6 +21,16 @@ function connectToRoom(roomId, tabId) {
 
   socket.onmessage = (event) => {
     const msg = JSON.parse(event.data);
+
+    if (msg.type === "partner_joined") {
+      chrome.storage.session.set({ partnerStatus: "connected" });
+      return;
+    }
+    if (msg.type === "partner_left") {
+      chrome.storage.session.set({ partnerStatus: "waiting" });
+      return;
+    }
+
     if (activeTabId !== null) {
       chrome.tabs.sendMessage(activeTabId, msg);
     }
@@ -34,7 +46,6 @@ function connectToRoom(roomId, tabId) {
   };
 }
 
-// Route messages from content script to server (and handle connect command from popup)
 chrome.runtime.onMessage.addListener((msg, sender) => {
   if (msg.type === "connect") {
     connectToRoom(msg.roomId, sender.tab?.id ?? activeTabId);
