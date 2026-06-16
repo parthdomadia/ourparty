@@ -27,6 +27,11 @@ async def room_endpoint(websocket: WebSocket, room_id: str):
 
     room["users"].append(websocket)
 
+    # If this is the second user joining, notify both that partner is connected
+    if len(room["users"]) == 2:
+        for user in room["users"]:
+            await user.send_json({"type": "partner_joined"})
+
     try:
         while True:
             data = await websocket.receive_json()
@@ -36,6 +41,13 @@ async def room_endpoint(websocket: WebSocket, room_id: str):
     finally:
         if websocket in room["users"]:
             room["users"].remove(websocket)
+        # Notify remaining user that partner left
+        partner = next((u for u in room["users"] if u is not websocket), None)
+        if partner:
+            try:
+                await partner.send_json({"type": "partner_left"})
+            except Exception:
+                pass
         if id(websocket) in room["timestamps"]:
             del room["timestamps"][id(websocket)]
         if not room["users"]:
