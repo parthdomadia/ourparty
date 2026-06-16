@@ -18,10 +18,21 @@ function waitForVideo(callback) {
 
 let isRemote = false;
 
+// True once the extension is reloaded/updated while this page is still open;
+// chrome.runtime calls throw "Extension context invalidated" after that point.
+function isContextValid() {
+  return !!(chrome.runtime && chrome.runtime.id);
+}
+
 function attachSync(video) {
   const send = (type) => {
     if (isRemote) return; // skip — this event was triggered by a remote command
-    chrome.runtime.sendMessage({ type, t: video.currentTime });
+    if (!isContextValid()) return;
+    try {
+      chrome.runtime.sendMessage({ type, t: video.currentTime });
+    } catch (e) {
+      // Extension was reloaded; this tab needs a refresh to reconnect.
+    }
   };
 
   video.addEventListener("play",   () => send("play"));
@@ -29,8 +40,16 @@ function attachSync(video) {
   video.addEventListener("seeked", () => send("seek"));
 
   // Heartbeat for drift correction
-  setInterval(() => {
-    chrome.runtime.sendMessage({ type: "tick", t: video.currentTime });
+  const heartbeat = setInterval(() => {
+    if (!isContextValid()) {
+      clearInterval(heartbeat);
+      return;
+    }
+    try {
+      chrome.runtime.sendMessage({ type: "tick", t: video.currentTime });
+    } catch (e) {
+      clearInterval(heartbeat);
+    }
   }, 5000);
 
   // Handle incoming commands from background.js
